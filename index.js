@@ -1,11 +1,38 @@
 const app = require('express')()
-const sqlite3 = require('sqlite3'),  TransactionDatabase = require("sqlite3-transactions").TransactionDatabase;
+const bodyParser = require('body-parser')
+const multer = require('multer')
+const fs = require('fs')
 const cors = require('cors')
+const mysql      = require('mysql');
+const connection = mysql.createConnection({
+  host     : 'localhost',
+  user     : 'admin',
+  password : 'Timka5212',
+  database : 'shop'
+});
 
-const db = new TransactionDatabase(new sqlite3.Database('shop'))
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      const dir = './images';
+      fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: function (req, file, cb) {
+      cb(null, file.originalname);
+    }
+});
 
-const createUser = (login, password, name, surname, description) => {
-    db.run(`INSERT INTO users (login, password, Username, Surname, description) VALUES (?, ?, ?, ?, ?)`, [login, password, name, surname, description], function(err) {
+const upload = multer({ storage: storage });
+
+app.use(cors({
+    origin: 'http://localhost:3000',
+}));
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+const createUser = (login, password, name, surname, email) => {
+    connection.run(`INSERT INTO users (login, password, name, surname, email) VALUES (?, ?, ?, ?, ?)`, [login, password, name, surname, email], function(err) {
         if (err) {
           console.error(err);
           console.log('Error saving user to database')
@@ -15,28 +42,9 @@ const createUser = (login, password, name, surname, description) => {
     })
 }
 
-const getAll = () => {
-    db.run(`SELECT * FROM users`, function(err, res){
-        if(err){
-            console.log(err)
-        } else {console.log(res); return res}
-    })
-}
-const findUser = (username) => {
-    db.get(`SELECT login, password FROM users WHERE login = '${username}'`, function(err, result){
-        if(err){
-            console.error(err)
-            console.log('Error')
-        } 
-        else{
-            user = result
-        }
-    })
-}
-
-app.get('/login/:username/:password', (req, res) => {
-    const { username, password } = req.params
-    db.get(`SELECT * FROM users WHERE login = '${username}'`, function(err, result){
+app.get('/login/:login/:password', (req, res) => {
+    const { login, password } = req.params
+    connection.get(`SELECT * FROM users WHERE login = '${login}'`, function(err, result){
         if(err){
             console.error(err)
             console.log('Error')
@@ -48,19 +56,69 @@ app.get('/login/:username/:password', (req, res) => {
     })
 })
 
-app.post('/registration', (req, res) => {
+app.post('/registration/', (req, res) => {
     const body = req.body
-    createUser(body.login, body.password, body.name, body.surname, body.description)
+    createUser(body.login, body.password, body.name, body.surname, body.email)
 })
 
-app.get('/user/:username', (req, res) => {
-    const { username, password } = req.params
-    db.get(`SELECT * FROM users WHERE login = '${username}'`, function(err, result){
+app.get('/user/:email', (req, res) => {
+    const { email } = req.params
+    connection.get(`SELECT * FROM users WHERE email = '${email}'`, function(err, result){
         if(err){
             console.error(err)
             console.log('Error')
         } 
         else{
+            return res.json(result)
+        }
+    })
+})
+
+app.post('/sendPhoto', upload.single('files'),  function async (req, res) {
+    let dir = `./images/${req.body.email}/`
+    if (!fs.existsSync(dir)){
+        fs.mkdirSync(dir, { recursive: true });
+    }
+    let oldPath = `./images/${req.file.originalname}`
+    let newPath = `./images/${req.body.email}/${req.file.originalname}`
+    fs.rename(oldPath, newPath, function (err) {
+        if (err) throw err
+        console.log('Successfully Moved File')
+    })
+
+    let data = {
+        email: req.body.email,
+        filename: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        dateCreate: Date('now')
+    }
+
+    let sql ='INSERT INTO userPhoto (email, filename, mimetype, size, dateCreate) VALUES (?,?,?,?,?)'
+    let params = [data.email, data.filename, data.mimetype, data.size, Date('now')]
+
+    connection.run(sql, params, function (err, result) {
+        if (err){
+            res.status(400).json({"error": err.message})
+            return;
+        }
+        else{
+            res.json(result)
+        }
+    });   
+
+    res.status(200).json(req.file)
+})
+
+app.get('/user/:login', (req, res) => {
+    const { login } = req.params
+    connection.get(`SELECT * FROM users WHERE login = '${login}'`, function(err, result){
+        if(err){
+            console.error(err)
+            console.log('Error')
+        } 
+        else{
+            console.log(result)
             return res.json(result)
         }
     })
