@@ -6,11 +6,10 @@ const cors = require('cors')
 const mysql      = require('mysql');
 const connection = mysql.createConnection({
   host     : 'localhost',
-  user     : 'admin',
+  user     : 'root',
   password : 'Timka5212',
   database : 'shop'
 });
-
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
       const dir = './images';
@@ -32,7 +31,14 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const createUser = (login, password, name, surname, email) => {
-    connection.run(`INSERT INTO users (login, password, name, surname, email) VALUES (?, ?, ?, ?, ?)`, [login, password, name, surname, email], function(err) {
+    connection.connect((err) => {
+        if (err) {
+          console.error('Error connecting to MySQL database: ', err);
+          return;
+        }
+        console.log('Connected to MySQL database!');
+      });
+    connection.query(`INSERT INTO users (login, password, name, surname, email) VALUES (?, ?, ?, ?, ?)`, [login, password, name, surname, email], function(err) {
         if (err) {
           console.error(err);
           console.log('Error saving user to database')
@@ -40,11 +46,12 @@ const createUser = (login, password, name, surname, email) => {
           console.log(`User with ID ${this.lastID} saved to database`)
         }
     })
+    connection.end()
 }
 
 app.get('/login/:login/:password', (req, res) => {
     const { login, password } = req.params
-    connection.get(`SELECT * FROM users WHERE login = '${login}'`, function(err, result){
+    connection.query(`SELECT * FROM users WHERE login = '${login}'`, function(err, result){
         if(err){
             console.error(err)
             console.log('Error')
@@ -63,7 +70,7 @@ app.post('/registration/', (req, res) => {
 
 app.get('/user/:email', (req, res) => {
     const { email } = req.params
-    connection.get(`SELECT * FROM users WHERE email = '${email}'`, function(err, result){
+    connection.query(`SELECT * FROM users WHERE email = '${email}'`, function(err, result){
         if(err){
             console.error(err)
             console.log('Error')
@@ -97,7 +104,7 @@ app.post('/sendPhoto', upload.single('files'),  function async (req, res) {
     let sql ='INSERT INTO userPhoto (email, filename, mimetype, size, dateCreate) VALUES (?,?,?,?,?)'
     let params = [data.email, data.filename, data.mimetype, data.size, Date('now')]
 
-    connection.run(sql, params, function (err, result) {
+    connection.query(sql, params, function (err, result) {
         if (err){
             res.status(400).json({"error": err.message})
             return;
@@ -112,7 +119,7 @@ app.post('/sendPhoto', upload.single('files'),  function async (req, res) {
 
 app.get('/user/:login', (req, res) => {
     const { login } = req.params
-    connection.get(`SELECT * FROM users WHERE login = '${login}'`, function(err, result){
+    connection.query(`SELECT * FROM users WHERE login = '${login}'`, function(err, result){
         if(err){
             console.error(err)
             console.log('Error')
