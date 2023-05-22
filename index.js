@@ -9,7 +9,7 @@ const mysql = require('mysql2');
 const connection = mysql.createConnection({
   host     : 'localhost',
   user     : 'root',
-  password : 'Tim15105112345',
+  password : 'Timka5212',
   database : 'shop'
 });
 const storage = multer.diskStorage({
@@ -32,22 +32,22 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.get('/login/:login/:password', (req, res) => {
-    const { login, password } = req.params
+app.get('/login/:email/:password', (req, res) => {
+    const { email, password } = req.params
     connection.connect((err) => {
         if(err){
             console.log(err.message)
         }
         console.log('Connected to MySQL')
-        connection.query(`SELECT * FROM users WHERE email = '${login}'`, function(err, result){
+        connection.query(`SELECT * FROM users WHERE email = '${email}'`, function(err, result){
             if(err){
                 console.error(err)
                 console.log('Error')
             } 
             else{
-                console.log(result)
-                if (result.password === password)
+                if (result[0].password === password)
                     return res.json(result)
+                else  return res.send('Uncorrect password!')
             }
         })
     })
@@ -86,7 +86,7 @@ app.get('/user/:email', (req, res) => {
                 console.log('Error')
             } 
             else{
-                return res.json(result)
+                return res.json(result[0])
             }
         })
     })
@@ -138,14 +138,14 @@ app.get('/getPhoto/:email', (req, res) => {
         if(err){
             console.log(err)
         }
-        connection.query('SELECT * FROM userPhoto WHERE email = ?', [email], (err, row) => {
+        connection.query(`SELECT * FROM userPhoto WHERE email = '${email}'`, (err, row) => {
             if (err) {
                 console.error(err.message);
                 res.status(500).send('Server Error');
             } else if (!row) {
                 res.status(404).send('Photo not found');
             } else {
-                const filename = row.filename;
+                const filename = row[0].filename
                 const filepath = `images/${email}/` + filename;
                 fs.readFile(filepath, (err, data) => {
                     if (err) {
@@ -182,16 +182,36 @@ app.get('/user/:login', (req, res) => {
 })
 app.post('/sendMessage', (req, res) => {
     const {name, email, message, star} = req.body
-    connection.query('INSERT INTO feedback (name, email, message, star) VALUES (?, ?, ?, ?)', [name, email, message, star], (err, result) => {
-        if (err){
-            res.status(400).json({"error": err.message})
-            return;
-        }
-        else{
-            res.json(result)
-        }
-    })
+    connection.connect((err) => {
+        connection.query('INSERT INTO feedback (name, email, message, stars) VALUES (?, ?, ?, ?)', [name, email, message, star], (err, result) => {
+            if (err){
+                res.status(400).json({"error": err.message})
+                return;
+            }
+            else{
+                res.send('Success')
+            }
+        })
+    }) 
 })
+ // ________Orders___________
+
+ app.post('/makeOrder', (req, res) => {
+    const {title, price, cardNum, cardDate, message, email, login} = req.body
+    connection.connect((err) => {
+        connection.query('INSERT INTO orders (title, price, cardNum, cardDate, message, email, login) VALUES (?, ?, ?, ?)', [title, price, cardNum, cardDate, message, email, login], (err, result) => {
+            if (err){
+                res.status(400).json({"error": err.message})
+                return;
+            }
+            else{
+                res.send('Success')
+            }
+        })
+    }) 
+ })
+
+ // _________________________
 
 app.listen(3300, () => {
     console.log("server start on 3300 port")
