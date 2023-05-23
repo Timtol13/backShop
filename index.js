@@ -9,7 +9,7 @@ const mysql = require('mysql2');
 const connection = mysql.createConnection({
   host     : 'localhost',
   user     : 'root',
-  password : 'Timka5212',
+  password : 'Tim15105112345',
   database : 'shop'
 });
 const storage = multer.diskStorage({
@@ -45,7 +45,7 @@ app.get('/login/:email/:password', (req, res) => {
                 console.log('Error')
             } 
             else{
-                if (result[0].password === password)
+                if (result.password === password)
                     return res.json(result)
                 else  return res.send('Uncorrect password!')
             }
@@ -198,6 +198,7 @@ app.post('/sendMessage', (req, res) => {
 
  app.post('/makeOrder', (req, res) => {
     const {title, price, cardNum, cardDate, message, email, login} = req.body
+    console.log(title, price, cardNum, cardDate, message, email, login)
     connection.connect((err) => {
         connection.query('INSERT INTO orders (title, price, cardNum, cardDate, message, email, login) VALUES (?, ?, ?, ?)', [title, price, cardNum, cardDate, message, email, login], (err, result) => {
             if (err){
