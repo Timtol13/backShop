@@ -9,7 +9,7 @@ const mysql = require('mysql2');
 const connection = mysql.createConnection({
   host     : 'localhost',
   user     : 'root',
-  password : 'Tim15105112345',
+  password : 'Timka5212',
   database : 'shop'
 });
 const storage = multer.diskStorage({
@@ -93,48 +93,45 @@ app.get('/user/:email', (req, res) => {
 })
 
 app.post('/sendPhoto', upload.single('files'), function async (req, res) {
-    let dir = `./images/${req.body.email}/`
+        let dir = `./images/${req.body.email}/`
     if (!fs.existsSync(dir)){
         fs.mkdirSync(dir, { recursive: true });
     }
     let oldPath = `./images/${req.file.originalname}`
     let newPath = `./images/${req.body.email}/${req.file.originalname}`
     fs.rename(oldPath, newPath, function (err) {
-        if (err) throw err
-        console.log('Successfully Moved File')
-    })
-
-    let data = {
-        email: req.body.email,
-        filename: req.file.originalname,
-        mimetype: req.file.mimetype,
-        size: req.file.size,
-        dateCreate: Date('now')
-    }
-
-    let sql ='INSERT INTO userPhoto (email, filename, mimetype, size, dateCreate) VALUES (?,?,?,?,?)'
-    let params = [data.email, data.filename, data.mimetype, data.size, Date('now')]
-    connection.connect((err) => {
-        if(err){
-            console.log(err.message)
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Failed to move file' });
         }
-        console.log('Connected to MySQL')
+        console.log('Successfully Moved File');
+
+        let data = {
+            email: req.body.email,
+            filename: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+            dateCreate: Date('now')
+        }
+
+        let sql ='INSERT INTO userPhoto (email, filename, mimetype, size, dateCreate) VALUES (?,?,?,?,?)'
+        let params = [data.email, data.filename, data.mimetype, data.size, Date.now()]
+
         connection.query(sql, params, function (err, result) {
-            if (err){
-                res.status(400).json({"error": err.message})
-                return;
+            if (err) {
+                console.error(err);
+                return res.status(400).json({ error: 'Error saving photo to database' });
             }
-            else{
-                res.json(result)
+            else {
+                res.setHeader('Content-Type', 'image/*');
+                res.json(result);
             }
-        });   
-    })
-    res.status(200).json(req.file)
-})
+        });
+    });
+});
 
 app.get('/getPhoto/:email', (req, res) => {
     const {email} = req.params
-    res.setHeader('Content-Type', 'image/*');
     connection.connect((err) => {
         if(err){
             console.log(err)
@@ -146,6 +143,7 @@ app.get('/getPhoto/:email', (req, res) => {
               } else if (!row) {
                 res.status(404).send('Photo not found');
               } else {
+                console.log(row)
                 const filename = row[0].filename;
                 const filepath = `images/${email}/` + filename;
                 fs.readFile(filepath, (err, data) => {
@@ -153,6 +151,7 @@ app.get('/getPhoto/:email', (req, res) => {
                     console.error(err.message);
                     res.status(500).send('Server Error');
                   } else {
+                    res.setHeader('Content-Type', 'image/*');
                     res.send(data);
                   }
                 });
