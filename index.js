@@ -92,7 +92,7 @@ app.get('/user/:email', (req, res) => {
     })
 })
 
-app.post('/sendPhoto', upload.single('files'),  async function (req, res) {
+app.post('/sendPhoto', upload.single('files'), function async (req, res) {
     let dir = `./images/${req.body.email}/`
     if (!fs.existsSync(dir)){
         fs.mkdirSync(dir, { recursive: true });
@@ -134,6 +134,7 @@ app.post('/sendPhoto', upload.single('files'),  async function (req, res) {
 
 app.get('/getPhoto/:email', (req, res) => {
     const {email} = req.params
+    res.setHeader('Content-Type', 'image/*');
     connection.connect((err) => {
         if(err){
             console.log(err)
@@ -142,21 +143,20 @@ app.get('/getPhoto/:email', (req, res) => {
             if (err) {
                 console.error(err.message);
                 res.status(500).send('Server Error');
-            } else if (!row) {
+              } else if (!row) {
                 res.status(404).send('Photo not found');
-            } else {
-                const filename = row[0].filename
+              } else {
+                const filename = row[0].filename;
                 const filepath = `images/${email}/` + filename;
                 fs.readFile(filepath, (err, data) => {
-                    if (err) {
-                        console.error(err.message);
-                        res.status(500).send('Server Error');
-                    } else {
-                        res.setHeader('Content-Type', 'image/*');
-                        res.send(data);
-                    }
+                  if (err) {
+                    console.error(err.message);
+                    res.status(500).send('Server Error');
+                  } else {
+                    res.send(data);
+                  }
                 });
-            }
+              }
         });
     })
 })
@@ -210,6 +210,26 @@ app.post('/sendMessage', (req, res) => {
             }
         })
     }) 
+ })
+
+ app.get('/getOrders/:email', (req, res) => {
+    const { email } = req.params
+    connection.connect((err) => {
+        if(err){
+            console.log(err.message)
+        }
+        console.log('Connected to MySQL')
+        connection.query(`SELECT * FROM orders WHERE login = '${email}'`, function(err, result){
+            if(err){
+                console.error(err)
+                console.log('Error')
+            } 
+            else{
+                console.log(result)
+                return res.json(result)
+            }
+        })
+    })
  })
 
  // _________________________
