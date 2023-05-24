@@ -9,7 +9,7 @@ const mysql = require('mysql2');
 const connection = mysql.createConnection({
   host     : 'localhost',
   user     : 'root',
-  password : 'Timka5212',
+  password : 'Tim15105112345',
   database : 'shop'
 });
 const storage = multer.diskStorage({
@@ -43,11 +43,12 @@ app.get('/login/:email/:password', (req, res) => {
             if(err){
                 console.error(err)
                 console.log('Error')
+                return res.status(500).send('Uncorrect password!')
             } 
             else{
                 if (result.password === password)
                     return res.json(result)
-                else  return res.send('Uncorrect password!')
+                else  return res.status(500).send('Uncorrect password!')
             }
         })
     })
@@ -193,13 +194,30 @@ app.post('/sendMessage', (req, res) => {
         })
     }) 
 })
+
+app.put('/editUser', (req, res) => {
+    const { name, surname, email, password, emailNow } = req.body;
+    console.log(name, surname, email, password, emailNow)
+    const sql = `UPDATE users SET name = '${name}', surname = '${surname}', email = '${email}', password = '${password}' WHERE email = '${emailNow}'`
+    connection.connect((err) => {
+        connection.query(sql, (err, result) => {
+        if (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Ошибка при выполнении запроса к базе данных' });
+        } else {
+            res.json({ message: 'Данные пользователя успешно изменены' });
+        }
+        });
+    }) 
+});
+
  // ________Orders___________
 
  app.post('/makeOrder', (req, res) => {
     const {title, price, cardNum, cardDate, message, email, login} = req.body
     console.log(title, price, cardNum, cardDate, message, email, login)
     connection.connect((err) => {
-        connection.query('INSERT INTO orders (title, price, cardNum, cardDate, message, email, login) VALUES (?, ?, ?, ?)', [title, price, cardNum, cardDate, message, email, login], (err, result) => {
+        connection.query(`INSERT INTO orders (title, price, cardNum, cardDate, message, email, login) VALUES ('${title}', '${price}', '${cardNum}', '${cardDate}', '${message}', '${email}', '${login}')`, (err, result) => {
             if (err){
                 res.status(400).json({"error": err.message})
                 return;
@@ -232,6 +250,10 @@ app.post('/sendMessage', (req, res) => {
  })
 
  // _________________________
+
+ app.get('/fill', (req,res) => {
+
+ })
 
 app.listen(3300, () => {
     console.log("server start on 3300 port")
