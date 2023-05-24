@@ -144,7 +144,6 @@ app.get('/getPhoto/:email', (req, res) => {
               } else if (!row) {
                 res.status(404).send('Photo not found');
               } else {
-                console.log(row)
                 const filename = row[0].filename;
                 const filepath = `images/${email}/` + filename;
                 fs.readFile(filepath, (err, data) => {
@@ -236,7 +235,29 @@ app.put('/editUser', (req, res) => {
             console.log(err.message)
         }
         console.log('Connected to MySQL')
-        connection.query(`SELECT * FROM orders WHERE login = '${email}'`, function(err, result){
+        connection.query(`SELECT * FROM orders WHERE email = '${email}'`, function(err, result){
+            if(err){
+                console.error(err)
+                console.log('Error')
+            } 
+            else{
+                console.log(result)
+                return res.send(result)
+            }
+        })
+    })
+ })
+
+ // _________________________
+
+ app.post('/fill', (req,res) => {
+    const { image, title, price, description } = req.body
+    connection.connect((err) => {
+        if(err){
+            console.log(err.message)
+        }
+        console.log('Connected to MySQL')
+        connection.query(`INSERT INTO goods (image, title, price, description) VALUES ('${image}', '${title}', '${price}', '${description}')`, function(err, result){
             if(err){
                 console.error(err)
                 console.log('Error')
@@ -248,11 +269,24 @@ app.put('/editUser', (req, res) => {
         })
     })
  })
-
- // _________________________
-
- app.get('/fill', (req,res) => {
-
+  app.get('/getGoods', (req,res) => {
+    const { image, title, price, description } = req.body
+    connection.connect((err) => {
+        if(err){
+            console.log(err.message)
+        }
+        console.log('Connected to MySQL')
+        connection.query(`SELECT * FROM goods`, function(err, result){
+            if(err){
+                console.error(err)
+                console.log('Error')
+            } 
+            else{
+                console.log(result)
+                return res.json(result)
+            }
+        })
+    })
  })
 
 app.listen(3300, () => {
