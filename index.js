@@ -43,10 +43,10 @@ app.get('/login/:email/:password', (req, res) => {
             if(err){
                 console.error(err)
                 console.log('Error')
-                return res.status(500).send('Uncorrect password!')
             } 
             else{
-                if (result.password === password)
+                console.log(result, password)
+                if (result[0].password === password)
                     return res.json(result)
                 else  return res.status(500).send('Uncorrect password!')
             }
@@ -144,17 +144,19 @@ app.get('/getPhoto/:email', (req, res) => {
               } else if (!row) {
                 res.status(404).send('Photo not found');
               } else {
-                const filename = row[0].filename;
-                const filepath = `images/${email}/` + filename;
-                fs.readFile(filepath, (err, data) => {
-                  if (err) {
-                    console.error(err.message);
-                    res.status(500).send('Server Error');
-                  } else {
-                    res.setHeader('Content-Type', 'image/*');
-                    res.send(data);
-                  }
-                });
+                try{
+                    const filename = row[0].filename;
+                    const filepath = `images/${email}/` + filename;
+                    fs.readFile(filepath, (err, data) => {
+                    if (err) {
+                        console.error(err.message);
+                        res.status(500).send('Server Error');
+                    } else {
+                        res.setHeader('Content-Type', 'image/*');
+                        res.send(data);
+                    }
+                    });
+                } catch (TypeError) {console.log('TypeError')}
               }
         });
     })
